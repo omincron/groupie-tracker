@@ -1,0 +1,16 @@
+{{ define "content" }}
+<section class="neon-section">
+    <h2>{{ .Artist.Name }}</h2>
+    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="neon-image-large">
+    <p><strong>Members:</strong> {{ range .Artist.Members }}{{ . }}, {{ end }}</p>
+    <p><strong>First Album:</strong> {{ .Artist.FirstAlbum }}</p>
+    <p><strong>Creation Date:</strong> {{ .Artist.CreationDate }}</p>
+    <h3>Concert Locations</h3>
+    <ul>
+        {{ range $location, $dates := .Artist.Relation.DateLocations }}
+        <li><strong>{{ $location }}:</strong> {{ range $dates }}{{ . }}, {{ end }}</li>
+        {{ end }}
+    </ul>
+    <a href="/" class="neon-button">Back to Home</a>
+</section>
+{{ end }}

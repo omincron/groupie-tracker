@@ -1,0 +1,20 @@
+{{ define "content" }}
+<section class="neon-section">
+    <h2>Welcome to Groopie Tracker</h2>
+    <form action="/" method="get" class="neon-form">
+        <input type="text" name="search" placeholder="Search for an artist..." class="neon-input">
+        <button type="submit" class="neon-button">Search</button>
+    </form>
+
+    <div class="neon-grid">
+        {{ range .Artists }}
+        <div class="neon-card">
+            <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="neon-image">
+            <h3>{{ .Artist.Name }}</h3>
+            <p>First Album: {{ .Artist.FirstAlbum }}</p>
+            <a href="/artist/{{ .Artist.ID }}" class="neon-link">View Details</a>
+        </div>
+        {{ end }}
+    </div>
+</section>
+{{ end }}
