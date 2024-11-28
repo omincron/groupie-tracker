@@ -30,6 +30,37 @@ func FetchArtists() ([]models.Artist, error) {
 	return artists, nil
 }
 
+// FetchEvents fetches events data from the external API
+func FetchLocations() ([]models.Location, error) {
+	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/locations")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var locations []models.Location
+	if err := json.NewDecoder(resp.Body).Decode(&locations); err != nil {
+		return nil, err
+	}
+
+	return locations, nil
+}
+
+func FetchDate() ([]models.Date, error) {
+	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/dates")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var dates []models.Date
+	if err := json.NewDecoder(resp.Body).Decode(&dates); err != nil {
+		return nil, err
+	}
+
+	return dates, nil
+}
+
 // FetchRelations fetches relations data from the external API
 func FetchRelations() ([]models.RelationData, error) {
 	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/relation")
