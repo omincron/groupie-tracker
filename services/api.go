@@ -88,6 +88,9 @@ func MergeData() ([]models.ArtistFull, error) {
 	var relations struct {
 		Index []models.Relations `json:"index"` // Changed from RelationData to Relations
 	}
+	var dates struct {
+		Index []models.Date `json:"index"`
+	}
 
 	// Fetch artists
 	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
@@ -106,6 +109,16 @@ func MergeData() ([]models.ArtistFull, error) {
 	}
 	defer locResp.Body.Close()
 	if err := json.NewDecoder(locResp.Body).Decode(&locations); err != nil {
+		return nil, err
+	}
+
+	// Fetch dates
+	dateResp, err := http.Get("https://groupietrackers.herokuapp.com/api/dates")
+	if err != nil {
+		return nil, err
+	}
+	defer dateResp.Body.Close()
+	if err := json.NewDecoder(dateResp.Body).Decode(&dates); err != nil {
 		return nil, err
 	}
 
