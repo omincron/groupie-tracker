@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"fmt"
 	"groopie_local/models"
 	"net/http"
 	"sync"
@@ -62,7 +61,7 @@ func FetchDate() ([]models.Date, error) {
 }
 
 // FetchRelations fetches relations data from the external API
-func FetchRelations() ([]models.RelationData, error) {
+func FetchRelations() ([]models.Relations, error) { // Changed from RelationData to Relations
 	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/relation")
 	if err != nil {
 		return nil, err
@@ -70,8 +69,9 @@ func FetchRelations() ([]models.RelationData, error) {
 	defer resp.Body.Close()
 
 	var relations struct {
-		Index []models.RelationData `json:"index"`
+		Index []models.Relations `json:"index"` // Changed from RelationData to Relations
 	}
+
 	if err := json.NewDecoder(resp.Body).Decode(&relations); err != nil {
 		return nil, err
 	}
@@ -81,42 +81,62 @@ func FetchRelations() ([]models.RelationData, error) {
 
 // MergeData fetches and merges artist and relation data
 func MergeData() ([]models.ArtistFull, error) {
-	// Use concurrency to fetch artists and relations
 	var artists []models.Artist
-	var relations []models.RelationData
-	var errArtists, errRelations error
-
-	var wg sync.WaitGroup
-	wg.Add(2)
-
-	go func() {
-		defer wg.Done()
-		artists, errArtists = FetchArtists()
-	}()
-
-	go func() {
-		defer wg.Done()
-		relations, errRelations = FetchRelations()
-	}()
-
-	wg.Wait()
-
-	if errArtists != nil || errRelations != nil {
-		return nil, fmt.Errorf("error fetching data: %v, %v", errArtists, errRelations)
+	var locations struct {
+		Index []models.Location `json:"index"`
+	}
+	var relations struct {
+		Index []models.Relations `json:"index"` // Changed from RelationData to Relations
 	}
 
-	// Map relations by artist ID for quick lookup
-	relationsMap := make(map[int]models.RelationData)
-	for _, relation := range relations {
-		relationsMap[relation.ID] = relation
+	// Fetch artists
+	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
+		return nil, err
 	}
 
-	// Merge artist and relation data
+	// Fetch locations
+	locResp, err := http.Get("https://groupietrackers.herokuapp.com/api/locations")
+	if err != nil {
+		return nil, err
+	}
+	defer locResp.Body.Close()
+	if err := json.NewDecoder(locResp.Body).Decode(&locations); err != nil {
+		return nil, err
+	}
+
+	// Fetch relations
+	relResp, err := http.Get("https://groupietrackers.herokuapp.com/api/relation")
+	if err != nil {
+		return nil, err
+	}
+	defer relResp.Body.Close()
+	if err := json.NewDecoder(relResp.Body).Decode(&relations); err != nil {
+		return nil, err
+	}
+
+	// Create maps for quick lookup
+	locationsMap := make(map[int]models.Location)
+	for _, loc := range locations.Index {
+		locationsMap[loc.ID] = loc
+	}
+
+	relationsMap := make(map[int]models.Relations) // Changed from RelationData to Relations
+	for _, rel := range relations.Index {
+		relationsMap[rel.ID] = rel
+	}
+
+	// Create full artist data
 	var artistsFull []models.ArtistFull
 	for _, artist := range artists {
 		artistFull := models.ArtistFull{
-			Artist:   artist,
-			Relation: relationsMap[artist.ID],
+			Artist:    artist,
+			Location:  locationsMap[artist.ID],
+			Relations: relationsMap[artist.ID],
 		}
 		artistsFull = append(artistsFull, artistFull)
 	}

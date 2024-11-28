@@ -1,16 +1,34 @@
 {{ define "content" }}
 <section class="neon-section">
-    <h2>{{ .Artist.Name }}</h2>
-    <img src="{{ .Artist.Image }}" alt="{{ .Artist.Name }}" class="neon-image-large">
-    <p><strong>Members:</strong> {{ range .Artist.Members }}{{ . }}, {{ end }}</p>
-    <p><strong>First Album:</strong> {{ .Artist.FirstAlbum }}</p>
-    <p><strong>Creation Date:</strong> {{ .Artist.CreationDate }}</p>
-    <h3>Concert Locations</h3>
-    <ul>
-        {{ range $location, $dates := .Artist.Relation.DateLocations }}
-        <li><strong>{{ $location }}:</strong> {{ range $dates }}{{ . }}, {{ end }}</li>
-        {{ end }}
-    </ul>
+    <h2>{{ .Artist.Artist.Name }}</h2>
+    <img src="{{ .Artist.Artist.Image }}" alt="{{ .Artist.Artist.Name }}" class="neon-image-large">
+    
+    <div class="artist-info">
+        <p><strong>Members:</strong> 
+            {{ range $index, $member := .Artist.Artist.Members }}
+                {{ if $index }}, {{ end }}{{ $member }}
+            {{ end }}
+        </p>
+        <p><strong>First Album:</strong> {{ .Artist.Artist.FirstAlbum }}</p>
+        <p><strong>Creation Date:</strong> {{ .Artist.Artist.CreationDate }}</p>
+    </div>
+
+    <div class="concert-info">
+        <h3>Concert Locations and Dates</h3>
+        <div class="locations-grid">
+            {{ range $location, $dates := .Artist.Relations.DatesLocations }}
+            <div class="location-card">
+                <h4>{{ $location }}</h4>
+                <div class="dates">
+                    {{ range $dates }}
+                    <p class="date">{{ . }}</p>
+                    {{ end }}
+                </div>
+            </div>
+            {{ end }}
+        </div>
+    </div>
+
     <a href="/" class="neon-button">Back to Home</a>
 </section>
 {{ end }}

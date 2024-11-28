@@ -1,6 +1,6 @@
 package models
 
-type RelationData struct {
-	ID            int
-	DateLocations map[string][]string
+type Relations struct {
+	ID             int                 `json:"id"`
+	DatesLocations map[string][]string `json:"datesLocations"`
 }

@@ -1,6 +1,7 @@
 package models
 
 type ArtistFull struct {
-	Artist
-	Relation RelationData
+	Artist    Artist    `json:"artist"`
+	Location  Location  `json:"location"`
+	Relations Relations `json:"relations"`
 }

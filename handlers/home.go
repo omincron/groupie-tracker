@@ -23,7 +23,7 @@ func HomeHandler(w http.ResponseWriter, r *http.Request) {
 	if searchQuery != "" {
 		var filtered []models.ArtistFull
 		for _, artist := range artistsFull {
-			if strings.Contains(strings.ToLower(artist.Name), strings.ToLower(searchQuery)) {
+			if strings.Contains(strings.ToLower(artist.Artist.Name), strings.ToLower(searchQuery)) {
 				filtered = append(filtered, artist)
 			}
 		}

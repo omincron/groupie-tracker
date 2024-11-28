@@ -13,32 +13,31 @@ func ArtistHandler(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
 		http.NotFound(w, r)
-		return // Stop further execution
+		return
 	}
 
 	artistsFull, err := services.GetCachedData()
 	if err != nil {
 		renderTemplate(w, "error", TemplateData{Title: "Error"})
-		return // Stop further execution
+		return
 	}
 
 	var artistFull models.ArtistFull
 	for _, artist := range artistsFull {
-		if artist.ID == id {
+		if artist.Artist.ID == id { // Changed from artist.ID to artist.Artist.ID
 			artistFull = artist
 			break
 		}
 	}
 
-	if artistFull.ID == 0 {
+	if artistFull.Artist.ID == 0 { // Changed from artistFull.ID to artistFull.Artist.ID
 		http.NotFound(w, r)
-		return // Stop further execution
+		return
 	}
 
-	// Pass the individual artist to the template
 	data := TemplateData{
-		Title:  artistFull.Artist.Name + " - Groopie Tracker",
-		Artist: artistFull, // Populate the Artist field
+		Title:  artistFull.Artist.Name + " - Groopie Tracker", // Changed from artistFull.Name
+		Artist: artistFull,
 	}
 
 	renderTemplate(w, "artist", data)
