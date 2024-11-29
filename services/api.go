@@ -5,171 +5,119 @@ import (
 	"groopie_local/models"
 	"net/http"
 	"sync"
+	"time"
 )
 
 var (
-	cache        []models.ArtistFull
-	cacheLock    sync.Mutex
-	cacheUpdated bool
+	cache         []models.ArtistFull
+	cacheLock     sync.Mutex
+	cacheUpdated  bool
+	lastCacheTime time.Time
 )
 
-// FetchArtists fetches artist data from the external API
+func fetchFromAPI(url string, target interface{}) error {
+	resp, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	return json.NewDecoder(resp.Body).Decode(target)
+}
+
 func FetchArtists() ([]models.Artist, error) {
-	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
 	var artists []models.Artist
-	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
-		return nil, err
-	}
-
-	return artists, nil
+	err := fetchFromAPI("https://groupietrackers.herokuapp.com/api/artists", &artists)
+	return artists, err
 }
 
-// FetchEvents fetches events data from the external API
 func FetchLocations() ([]models.Location, error) {
-	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/locations")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var locations []models.Location
-	if err := json.NewDecoder(resp.Body).Decode(&locations); err != nil {
-		return nil, err
-	}
-
-	return locations, nil
-}
-
-func FetchDate() ([]models.Date, error) {
-	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/dates")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var dates []models.Date
-	if err := json.NewDecoder(resp.Body).Decode(&dates); err != nil {
-		return nil, err
-	}
-
-	return dates, nil
-}
-
-// FetchRelations fetches relations data from the external API
-func FetchRelations() ([]models.Relations, error) { // Changed from RelationData to Relations
-	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/relation")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var relations struct {
-		Index []models.Relations `json:"index"` // Changed from RelationData to Relations
-	}
-
-	if err := json.NewDecoder(resp.Body).Decode(&relations); err != nil {
-		return nil, err
-	}
-
-	return relations.Index, nil
-}
-
-// MergeData fetches and merges artist and relation data
-func MergeData() ([]models.ArtistFull, error) {
-	var artists []models.Artist
-	var locations struct {
+	var response struct {
 		Index []models.Location `json:"index"`
 	}
-	var relations struct {
-		Index []models.Relations `json:"index"` // Changed from RelationData to Relations
+	err := fetchFromAPI("https://groupietrackers.herokuapp.com/api/locations", &response)
+	return response.Index, err
+}
+
+func FetchRelations() ([]models.Relations, error) {
+	var response struct {
+		Index []models.Relations `json:"index"`
 	}
-	var dates struct {
-		Index []models.Date `json:"index"`
+	err := fetchFromAPI("https://groupietrackers.herokuapp.com/api/relation", &response)
+	return response.Index, err
+}
+
+func MergeData() ([]models.ArtistFull, error) {
+	var artists []models.Artist
+	var locations []models.Location
+	var relations []models.Relations
+	var err error
+
+	var wg sync.WaitGroup
+	errChan := make(chan error, 3)
+
+	wg.Add(3)
+	go func() {
+		defer wg.Done()
+		artists, err = FetchArtists()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		locations, err = FetchLocations()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		relations, err = FetchRelations()
+		if err != nil {
+			errChan <- err
+		}
+	}()
+	wg.Wait()
+	close(errChan)
+
+	for e := range errChan {
+		return nil, e
 	}
 
-	// Fetch artists
-	resp, err := http.Get("https://groupietrackers.herokuapp.com/api/artists")
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-	if err := json.NewDecoder(resp.Body).Decode(&artists); err != nil {
-		return nil, err
+	locationMap := make(map[int]models.Location)
+	for _, loc := range locations {
+		locationMap[loc.ID] = loc
 	}
 
-	// Fetch locations
-	locResp, err := http.Get("https://groupietrackers.herokuapp.com/api/locations")
-	if err != nil {
-		return nil, err
-	}
-	defer locResp.Body.Close()
-	if err := json.NewDecoder(locResp.Body).Decode(&locations); err != nil {
-		return nil, err
-	}
-
-	// Fetch dates
-	dateResp, err := http.Get("https://groupietrackers.herokuapp.com/api/dates")
-	if err != nil {
-		return nil, err
-	}
-	defer dateResp.Body.Close()
-	if err := json.NewDecoder(dateResp.Body).Decode(&dates); err != nil {
-		return nil, err
-	}
-
-	// Fetch relations
-	relResp, err := http.Get("https://groupietrackers.herokuapp.com/api/relation")
-	if err != nil {
-		return nil, err
-	}
-	defer relResp.Body.Close()
-	if err := json.NewDecoder(relResp.Body).Decode(&relations); err != nil {
-		return nil, err
-	}
-
-	// Create maps for quick lookup
-	locationsMap := make(map[int]models.Location)
-	for _, loc := range locations.Index {
-		locationsMap[loc.ID] = loc
-	}
-
-	relationsMap := make(map[int]models.Relations) // Changed from RelationData to Relations
-	for _, rel := range relations.Index {
+	relationsMap := make(map[int]models.Relations)
+	for _, rel := range relations {
 		relationsMap[rel.ID] = rel
 	}
 
-	// Create full artist data
 	var artistsFull []models.ArtistFull
 	for _, artist := range artists {
-		artistFull := models.ArtistFull{
+		artistsFull = append(artistsFull, models.ArtistFull{
 			Artist:    artist,
-			Location:  locationsMap[artist.ID],
+			Location:  locationMap[artist.ID],
 			Relations: relationsMap[artist.ID],
-		}
-		artistsFull = append(artistsFull, artistFull)
+		})
 	}
 
 	return artistsFull, nil
 }
 
-// GetCachedData returns cached data or refreshes it
 func GetCachedData() ([]models.ArtistFull, error) {
 	cacheLock.Lock()
 	defer cacheLock.Unlock()
 
-	if !cacheUpdated {
+	if !cacheUpdated || time.Since(lastCacheTime) > 5*time.Minute {
 		var err error
 		cache, err = MergeData()
 		if err != nil {
 			return nil, err
 		}
 		cacheUpdated = true
+		lastCacheTime = time.Now()
 	}
-
 	return cache, nil
 }

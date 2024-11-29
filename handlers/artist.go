@@ -3,6 +3,7 @@ package handlers
 import (
 	"groopie_local/models"
 	"groopie_local/services"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -11,32 +12,33 @@ import (
 func ArtistHandler(w http.ResponseWriter, r *http.Request) {
 	idStr := strings.TrimPrefix(r.URL.Path, "/artist/")
 	id, err := strconv.Atoi(idStr)
-	if err != nil {
+	if err != nil || id <= 0 {
+		log.Printf("Invalid artist ID: %s", idStr)
 		http.NotFound(w, r)
 		return
 	}
 
 	artistsFull, err := services.GetCachedData()
 	if err != nil {
+		log.Printf("Error fetching cached data: %v", err)
 		renderTemplate(w, "error", TemplateData{Title: "Error"})
 		return
 	}
 
-	var artistFull models.ArtistFull
+	artistMap := make(map[int]models.ArtistFull)
 	for _, artist := range artistsFull {
-		if artist.Artist.ID == id { // Changed from artist.ID to artist.Artist.ID
-			artistFull = artist
-			break
-		}
+		artistMap[artist.Artist.ID] = artist
 	}
 
-	if artistFull.Artist.ID == 0 { // Changed from artistFull.ID to artistFull.Artist.ID
+	artistFull, found := artistMap[id]
+	if !found {
+		log.Printf("Artist with ID %d not found", id)
 		http.NotFound(w, r)
 		return
 	}
 
 	data := TemplateData{
-		Title:  artistFull.Artist.Name + " - Groopie Tracker", // Changed from artistFull.Name
+		Title:  artistFull.Artist.Name + " - Groopie Tracker",
 		Artist: artistFull,
 	}
 

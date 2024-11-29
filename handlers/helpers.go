@@ -8,30 +8,29 @@ import (
 	"path/filepath"
 )
 
+const templateDir = "templates"
+
 type TemplateData struct {
 	Title       string
 	Artists     []models.ArtistFull
-	Artist      models.ArtistFull // Add this to store a single artist
+	Artist      models.ArtistFull
 	SearchQuery string
+	Message     string // Add this field
 }
 
 func renderTemplate(w http.ResponseWriter, name string, data TemplateData) {
-	tmplPath := filepath.Join("templates", name+".html")
-	layoutPath := filepath.Join("templates", "layout.html")
+	tmplPath := filepath.Join(templateDir, name+".html")
+	layoutPath := filepath.Join(templateDir, "layout.html")
 
-	// Parse the templates
 	tmpl, err := template.ParseFiles(layoutPath, tmplPath)
 	if err != nil {
-		log.Printf("Template parsing error: %v", err)
+		log.Printf("Error parsing template (%s): %v", name, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return // Prevent further execution
+		return
 	}
 
-	// Execute the layout template
-	err = tmpl.ExecuteTemplate(w, "layout", data)
-	if err != nil {
-		log.Printf("Template execution error: %v", err)
+	if err := tmpl.ExecuteTemplate(w, "layout", data); err != nil {
+		log.Printf("Error executing template (%s): %v", name, err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return // Prevent further execution
 	}
 }

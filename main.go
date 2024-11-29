@@ -21,7 +21,7 @@ func main() {
 	// Register route handlers
 	http.HandleFunc("/", handlers.HomeHandler)
 	http.HandleFunc("/artist/", handlers.ArtistHandler)
-	http.HandleFunc("/search", handlers.SearchHandler)
+	//http.HandleFunc("/search", handlers.SearchHandler)
 
 	// Start the server
 	log.Printf("Server started on :%s", port)

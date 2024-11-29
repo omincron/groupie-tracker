@@ -7,6 +7,8 @@
         <p><strong>Members:</strong> 
             {{ range $index, $member := .Artist.Artist.Members }}
                 {{ if $index }}, {{ end }}{{ $member }}
+            {{ else }}
+                No members listed.
             {{ end }}
         </p>
         <p><strong>First Album:</strong> {{ .Artist.Artist.FirstAlbum }}</p>
@@ -15,6 +17,7 @@
 
     <div class="concert-info">
         <h3>Concert Locations and Dates</h3>
+        {{ if .Artist.Relations.DatesLocations }}
         <div class="locations-grid">
             {{ range $location, $dates := .Artist.Relations.DatesLocations }}
             <div class="location-card">
@@ -22,11 +25,16 @@
                 <div class="dates">
                     {{ range $dates }}
                     <p class="date">{{ . }}</p>
+                    {{ else }}
+                        <p class="date">No dates available.</p>
                     {{ end }}
                 </div>
             </div>
             {{ end }}
         </div>
+        {{ else }}
+            <p>No concert locations or dates available.</p>
+        {{ end }}
     </div>
 
     <a href="/" class="neon-button">Back to Home</a>
