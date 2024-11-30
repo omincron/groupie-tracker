@@ -1,0 +1,9 @@
+[build]
+  command = "go build -o public/main main.go && mkdir -p public/templates && cp -r static public/ && cp -r templates public/"
+  publish = "public"
+
+
+[[redirects]]
+  from = "/*"
+  to = "/main"
+  status = 200
