@@ -46,16 +46,25 @@ func FetchRelations() ([]models.Relations, error) {
 	return response.Index, err
 }
 
+func FetchDates() ([]models.Date, error) {
+	var response struct {
+		Index []models.Date `json:"index"`
+	}
+	err := fetchFromAPI("https://groupietrackers.herokuapp.com/api/dates", &response)
+	return response.Index, err
+}
+
 func MergeData() ([]models.ArtistFull, error) {
 	var artists []models.Artist
 	var locations []models.Location
 	var relations []models.Relations
+	var dates []models.Date
 	var err error
 
 	var wg sync.WaitGroup
 	errChan := make(chan error, 3)
 
-	wg.Add(3)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		artists, err = FetchArtists()
@@ -77,6 +86,13 @@ func MergeData() ([]models.ArtistFull, error) {
 			errChan <- err
 		}
 	}()
+	go func() {
+		defer wg.Done()
+		dates, err = FetchDates()
+		if err != nil {
+			errChan <- err
+		}
+	}()
 	wg.Wait()
 	close(errChan)
 
@@ -94,12 +110,18 @@ func MergeData() ([]models.ArtistFull, error) {
 		relationsMap[rel.ID] = rel
 	}
 
+	datesMap := make(map[int]models.Date)
+	for _, rel := range dates {
+		datesMap[rel.ID] = rel
+	}
+
 	var artistsFull []models.ArtistFull
 	for _, artist := range artists {
 		artistsFull = append(artistsFull, models.ArtistFull{
 			Artist:    artist,
 			Location:  locationMap[artist.ID],
 			Relations: relationsMap[artist.ID],
+			Dates: datesMap[artist.ID],
 		})
 	}
 
