@@ -1,8 +1,0 @@
-[build]
-  command = "go run main.go"  # Run your Go app to generate static files
-  publish = "public"         # Netlify serves static files from this folder
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
