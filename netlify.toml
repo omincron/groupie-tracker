@@ -1,12 +1,8 @@
 [build]
-  command = "go build -o public/main main.go && mkdir -p public/templates && cp -r static public/ && cp -r templates public/"
-  publish = "public"
-
-[build.environment]
-  GO_VERSION = "1.21"  # Adjust based on your compatibility
-  NETLIFY_BUILD_DEBUG = "true"
+  command = "go run main.go"  # Run your Go app to generate static files
+  publish = "public"         # Netlify serves static files from this folder
 
 [[redirects]]
   from = "/*"
-  to = "/main"
+  to = "/index.html"
   status = 200
